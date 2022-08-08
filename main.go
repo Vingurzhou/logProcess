@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"sync"
 )
@@ -30,27 +33,44 @@ type WriteToInfluxDB struct {
 }
 
 func (r *ReadFromFile) Read(rc chan string) {
-	line := "message"
-	rc <- line
-	wg.Done()
+	f, err := os.Open(r.path)
+	if err != nil {
+		panic(err.Error())
+	}
+	f.Seek(0, 2)
+	rd := bufio.NewReader(f)
+	for {
+		line, err := rd.ReadBytes('\n')
+		if err == io.EOF {
+			wg.Done()
+			continue
+		} else if err != nil {
+			panic(err.Error())
+		}
+		rc <- string(line)
+	}
 }
 
 func (w *WriteToInfluxDB) Write(wc chan string) {
-	fmt.Println(<-wc)
+	for v := range wc {
+		fmt.Println(v)
+
+	}
 	wg.Done()
 }
 func (l *LogProcess) Process() {
-	data := <-l.rc
-	l.wc <- strings.ToUpper(data)
+	for v := range l.rc {
+		l.wc <- strings.ToUpper(v)
+	}
 	wg.Done()
 }
 
 func main() {
 	r := &ReadFromFile{
-		path: "",
+		path: "/var/log/system.log",
 	}
 	w := &WriteToInfluxDB{
-		influxDbDsn: "",
+		influxDbDsn: "username&password..",
 	}
 	lp := &LogProcess{
 		rc:    make(chan string),
