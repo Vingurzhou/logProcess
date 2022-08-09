@@ -42,19 +42,18 @@ func (r *ReadFromFile) Read(rc chan string) {
 	for {
 		line, err := rd.ReadBytes('\n')
 		if err == io.EOF {
-			wg.Done()
 			continue
 		} else if err != nil {
 			panic(err.Error())
 		}
-		rc <- string(line)
+		rc <- string(strings.TrimRight(string(line), "\n"))
 	}
+	// wg.Done()
 }
 
 func (w *WriteToInfluxDB) Write(wc chan string) {
 	for v := range wc {
 		fmt.Println(v)
-
 	}
 	wg.Done()
 }
@@ -67,7 +66,7 @@ func (l *LogProcess) Process() {
 
 func main() {
 	r := &ReadFromFile{
-		path: "/var/log/system.log",
+		path: "./access.log",
 	}
 	w := &WriteToInfluxDB{
 		influxDbDsn: "username&password..",
